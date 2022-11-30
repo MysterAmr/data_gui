@@ -1,16 +1,17 @@
 !pip install pyqtgraph
-
+import sys
 from PyQt5 import QtCore, QtWidgets
 from PyQt5.QtWidgets import QComboBox, QMainWindow, QApplication, QWidget, QVBoxLayout
 import pyqtgraph as pg
+import pyqtgraph.exporters
 from pyqtgraph import PlotWidget, plot
 import pandas as pd
 import numpy as np
 
-
 class NumpyArrayModel(QtCore.QAbstractTableModel):
     def __init__(self, array, headers, parent=None):
         QtCore.QAbstractTableModel.__init__(self, parent=parent)
+
         self._array = array
         self._headers = headers
         self.r, self.c = np.shape(self.array)
@@ -75,64 +76,70 @@ class NumpyArrayModel(QtCore.QAbstractTableModel):
         self.layoutChanged.emit()
 
 
-class Widget(QtWidgets.QWidget):
+class Window(QtWidgets.QWidget):
     def __init__(self, parent=None):
         QtWidgets.QWidget.__init__(self, parent=None)
-        self.combobox1 = QComboBox()
-        self.combobox1.addItems(['A', 'B', 'C'])
-        self.combobox2 = QComboBox()
-        self.combobox2.addItems(['A', 'B', 'C'])
-        self.combobox3 = QComboBox()
-        self.combobox3.addItems(['A', 'B', 'C'])
 
+        self.combo_box1 = QComboBox()
+        self.combo_box1.addItems(['A', 'B', 'C'])
+        self.combo_box2 = QComboBox()
+        self.combo_box2.addItems(['A', 'B', 'C'])
+        self.combo_box3 = QComboBox()
+        self.combo_box3.addItems(['A', 'B', 'C'])
+        self.pd_table = QtWidgets.QTableView(self)
 
-        vLayout = QtWidgets.QVBoxLayout(self)
-        hLayout = QtWidgets.QHBoxLayout()
-        #self.pathLE = QtWidgets.QLineEdit(self)
-        self.graphWidget = pg.PlotWidget()
-        self.loadBtn = QtWidgets.QPushButton("Import CSV", self)
-        self.pandasTv = QtWidgets.QTableView(self)
-        self.table_btn = QtWidgets.QPushButton("Table View", self)
-        self.plot_btn = QtWidgets.QPushButton("Plot", self)
-        vLayout.addWidget(self.combobox1)
-        vLayout.addWidget(self.combobox2)
-        vLayout.addWidget(self.combobox3)
-        hLayout.addWidget(self.loadBtn)
-        vLayout.addLayout(hLayout)
-        vLayout.addWidget(self.graphWidget)
-        vLayout.addWidget(self.plot_btn)
-        vLayout.addWidget(self.table_btn)
-        vLayout.addWidget(self.pandasTv)
-        self.loadBtn.clicked.connect(self.loadFile)
-        self.table_btn.clicked.connect(self.table_view)
-        self.plot_btn.clicked.connect(self.plot)
+        self.import_button = QtWidgets.QPushButton("Import CSV", self)
+        self.table_button = QtWidgets.QPushButton("View Table", self)
+        self.plot_button = QtWidgets.QPushButton("Plot", self)
+        self.run_button = QtWidgets.QPushButton("Run", self)
+        self.import_button.setCheckable(True)
 
+        self.import_button.clicked.connect(self.import_file)
+        self.table_button.clicked.connect(self.table_view)
+        self.plot_button.clicked.connect(self.plot)
+        self.run_button.clicked.connect(self.run)
+
+        vert_layout = QtWidgets.QVBoxLayout(self)
+        horiz_layout = QtWidgets.QHBoxLayout()
+        horiz1_layout = QtWidgets.QHBoxLayout()
+        horiz_layout.addWidget(self.combo_box1)
+        horiz_layout.addWidget(self.combo_box2)
+        horiz_layout.addWidget(self.combo_box3)
+        vert_layout.addLayout(horiz_layout)
+        horiz1_layout.addWidget(self.import_button)
+        horiz1_layout.addWidget(self.plot_button)
+        horiz1_layout.addWidget(self.table_button)
+        horiz1_layout.addWidget(self.run_button)
+        vert_layout.addLayout(horiz1_layout)
+        vert_layout.addWidget(self.pd_table)
+
+    def run(self):
+        if self.import_button.isChecked():
+            print(self.model)
+        else:
+            print("No file has been imported!")
 
     def plot(self):
         hour = [1,2,3,4,5,6,7,8,9,10]
         temperature = [30,32,34,32,33,31,29,32,35,45]
-        self.graphWidget.plot(hour, temperature)
+        plt = pg.plot(hour, temperature)
+        plt.showGrid(x=True,y=True)
 
     def table_view(self):
-        self.pandasTv.setModel(self.model)
-        self.pandasTv.setSortingEnabled(True)
-        
-    def loadFile(self):
-        fileName, _ = QtWidgets.QFileDialog.getOpenFileName(
-            self, "Open File", "", "CSV Files (*.csv)"
-        )
-        #self.pathLE.setText(fileName)
-        if fileName:
-            df = pd.read_csv(fileName)
+        self.pd_table.setModel(self.model)
+        self.pd_table.setSortingEnabled(True)
+
+    def import_file(self):
+        file_name, _ = QtWidgets.QFileDialog.getOpenFileName(
+            self, "Open File", "", "CSV Files (*.csv)")
+        if file_name:
+            df = pd.read_csv(file_name)
             array = np.array(df.values)
             headers = df.columns.tolist()
             self.model = NumpyArrayModel(array, headers)
 
-
 if __name__ == "__main__":
-    import sys
-
     app = QtWidgets.QApplication(sys.argv)
-    w = Widget()
+    w = Window()
     w.show()
     sys.exit(app.exec_())
