@@ -1,225 +1,149 @@
-{
- "cells": [
-  {
-   "cell_type": "code",
-   "execution_count": 1,
-   "id": "1bf7dd9c-4265-4af2-9ccc-487b07e7ca79",
-   "metadata": {},
-   "outputs": [
-    {
-     "name": "stdout",
-     "output_type": "stream",
-     "text": [
-      "Requirement already satisfied: pyqtgraph in /Users/elseweifia/opt/anaconda3/lib/python3.9/site-packages (0.13.1)\n",
-      "Requirement already satisfied: numpy>=1.20.0 in /Users/elseweifia/opt/anaconda3/lib/python3.9/site-packages (from pyqtgraph) (1.21.5)\n",
-      "No file has been imported\n",
-      "No file has been imported\n",
-      "No file has been imported\n",
-      "<__main__.NumpyArrayModel object at 0x7f944060bd30>\n",
-      "<__main__.NumpyArrayModel object at 0x7f944060bd30>\n",
-      "No file has been imported\n",
-      "<__main__.NumpyArrayModel object at 0x7f944060bd30>\n",
-      "<__main__.NumpyArrayModel object at 0x7f944060bd30>\n"
-     ]
-    },
-    {
-     "ename": "SystemExit",
-     "evalue": "0",
-     "output_type": "error",
-     "traceback": [
-      "An exception has occurred, use %tb to see the full traceback.\n",
-      "\u001b[0;31mSystemExit\u001b[0m\u001b[0;31m:\u001b[0m 0\n"
-     ]
-    },
-    {
-     "name": "stderr",
-     "output_type": "stream",
-     "text": [
-      "/Users/elseweifia/opt/anaconda3/lib/python3.9/site-packages/IPython/core/interactiveshell.py:3465: UserWarning: To exit: use 'exit', 'quit', or Ctrl-D.\n",
-      "  warn(\"To exit: use 'exit', 'quit', or Ctrl-D.\", stacklevel=1)\n"
-     ]
-    }
-   ],
-   "source": [
-    "!pip install pyqtgraph\n",
-    "import sys\n",
-    "from PyQt5 import QtCore, QtWidgets\n",
-    "from PyQt5.QtWidgets import QComboBox, QMainWindow, QApplication, QWidget, QVBoxLayout\n",
-    "import pyqtgraph as pg\n",
-    "import pyqtgraph.exporters\n",
-    "from pyqtgraph import PlotWidget, plot\n",
-    "import pandas as pd\n",
-    "import numpy as np\n",
-    "\n",
-    "class NumpyArrayModel(QtCore.QAbstractTableModel):\n",
-    "    def __init__(self, array, headers, parent=None):\n",
-    "        QtCore.QAbstractTableModel.__init__(self, parent=parent)\n",
-    "\n",
-    "        self._array = array\n",
-    "        self._headers = headers\n",
-    "        self.r, self.c = np.shape(self.array)\n",
-    "\n",
-    "    @property\n",
-    "    def array(self):\n",
-    "        return self._array\n",
-    "\n",
-    "    @property\n",
-    "    def headers(self):\n",
-    "        return self._headers\n",
-    "\n",
-    "    def rowCount(self, parent=QtCore.QModelIndex()):\n",
-    "        return self.r\n",
-    "\n",
-    "    def columnCount(self, parent=QtCore.QModelIndex()):\n",
-    "        return self.c\n",
-    "\n",
-    "    def headerData(self, p_int, orientation, role):\n",
-    "        if role == QtCore.Qt.DisplayRole:\n",
-    "            if orientation == QtCore.Qt.Horizontal:\n",
-    "                if p_int < len(self.headers):\n",
-    "                    return self.headers[p_int]\n",
-    "            elif orientation == QtCore.Qt.Vertical:\n",
-    "                return p_int + 1\n",
-    "        return\n",
-    "\n",
-    "    def data(self, index, role=QtCore.Qt.DisplayRole):\n",
-    "        if not index.isValid():\n",
-    "            return None\n",
-    "        row = index.row()\n",
-    "        column = index.column()\n",
-    "        if row < 0 or row >= self.rowCount():\n",
-    "            return None\n",
-    "        if column < 0 or column >= self.columnCount():\n",
-    "            return None\n",
-    "        if role == QtCore.Qt.DisplayRole:\n",
-    "            return self.array[row, column]\n",
-    "        return None\n",
-    "\n",
-    "    def setData(self, index, value, role):\n",
-    "        if not index.isValid():\n",
-    "            return False\n",
-    "        if role != QtCore.Qt.EditRole:\n",
-    "            return False\n",
-    "        row = index.row()\n",
-    "        column = index.column()\n",
-    "        if row < 0 or row >= self.rowCount():\n",
-    "            return False\n",
-    "        if column < 0 or column >= self.columnCount():\n",
-    "            return False\n",
-    "        self.array.values[row][column] = value\n",
-    "        self.dataChanged.emit(index, index)\n",
-    "        return True\n",
-    "\n",
-    "    def sort(self, column, order):\n",
-    "        self.layoutAboutToBeChanged.emit()\n",
-    "        argsort = self.array[:, column].argsort()\n",
-    "        if order == QtCore.Qt.DescendingOrder:\n",
-    "            argsort = argsort[::-1]\n",
-    "        self._array = self.array[argsort]\n",
-    "        self.layoutChanged.emit()\n",
-    "\n",
-    "\n",
-    "class Window(QtWidgets.QWidget):\n",
-    "    def __init__(self, parent=None):\n",
-    "        QtWidgets.QWidget.__init__(self, parent=None)\n",
-    "\n",
-    "        self.combo_box1 = QComboBox()\n",
-    "        self.combo_box2 = QComboBox()\n",
-    "        self.combo_box3 = QComboBox()\n",
-    "        self.combo_box1.addItems(['A', 'B', 'C'])\n",
-    "        self.combo_box2.addItems(['A', 'B', 'C'])\n",
-    "        self.combo_box3.addItems(['A', 'B', 'C'])\n",
-    "        self.pd_table = QtWidgets.QTableView(self)\n",
-    "\n",
-    "        self.import_button = QtWidgets.QPushButton(\"Import CSV\", self)\n",
-    "        self.table_button = QtWidgets.QPushButton(\"View Table\", self)\n",
-    "        self.plot_button = QtWidgets.QPushButton(\"Plot\", self)\n",
-    "        self.run_button = QtWidgets.QPushButton(\"Run\", self)\n",
-    "        self.import_button.setCheckable(True)\n",
-    "\n",
-    "        self.import_button.clicked.connect(self.import_file)\n",
-    "        self.table_button.clicked.connect(self.table_view)\n",
-    "        self.plot_button.clicked.connect(self.plot)\n",
-    "        self.run_button.clicked.connect(self.run)\n",
-    "\n",
-    "        vert_layout = QtWidgets.QVBoxLayout(self)\n",
-    "        combo_layout = QtWidgets.QHBoxLayout()\n",
-    "        button_layout = QtWidgets.QHBoxLayout()\n",
-    "        combo_layout.addWidget(self.combo_box1)\n",
-    "        combo_layout.addWidget(self.combo_box2)\n",
-    "        combo_layout.addWidget(self.combo_box3)\n",
-    "        vert_layout.addLayout(combo_layout)\n",
-    "        button_layout.addWidget(self.import_button)\n",
-    "        button_layout.addWidget(self.plot_button)\n",
-    "        button_layout.addWidget(self.table_button)\n",
-    "        button_layout.addWidget(self.run_button)\n",
-    "        vert_layout.addLayout(button_layout)\n",
-    "        vert_layout.addWidget(self.pd_table)\n",
-    "\n",
-    "    \n",
-    "    def import_file(self):\n",
-    "        file_name, _ = QtWidgets.QFileDialog.getOpenFileName(\n",
-    "            self, \"Open File\", \"\", \"CSV Files (*.csv)\")\n",
-    "        if file_name:\n",
-    "            df = pd.read_csv(file_name)\n",
-    "            array = np.array(df.values)\n",
-    "            headers = df.columns.tolist()\n",
-    "            self.model = NumpyArrayModel(array, headers)\n",
-    "            \n",
-    "    def table_view(self):\n",
-    "        if self.import_button.isChecked():\n",
-    "            self.pd_table.setModel(self.model)\n",
-    "            self.pd_table.setSortingEnabled(True)\n",
-    "        else:\n",
-    "            print(\"No file has been imported\")\n",
-    "            \n",
-    "    def plot(self):\n",
-    "        hour = [1,2,3,4,5,6,7,8,9,10]\n",
-    "        temperature = [30,32,34,32,33,31,29,32,35,45]\n",
-    "        plt = pg.plot(hour, temperature)\n",
-    "        plt.showGrid(x=True,y=True)\n",
-    "            \n",
-    "    def run(self):\n",
-    "        if self.import_button.isChecked():\n",
-    "            print(self.model)\n",
-    "        else:\n",
-    "            print(\"No file has been imported\")\n",
-    "\n",
-    "if __name__ == \"__main__\":\n",
-    "    app = QtWidgets.QApplication(sys.argv)\n",
-    "    w = Window()\n",
-    "    w.show()\n",
-    "    sys.exit(app.exec_())\n"
-   ]
-  },
-  {
-   "cell_type": "code",
-   "execution_count": null,
-   "id": "840a6e15-0f4f-4701-9b94-1c2bdf85a3eb",
-   "metadata": {},
-   "outputs": [],
-   "source": []
-  }
- ],
- "metadata": {
-  "kernelspec": {
-   "display_name": "Python 3 (ipykernel)",
-   "language": "python",
-   "name": "python3"
-  },
-  "language_info": {
-   "codemirror_mode": {
-    "name": "ipython",
-    "version": 3
-   },
-   "file_extension": ".py",
-   "mimetype": "text/x-python",
-   "name": "python",
-   "nbconvert_exporter": "python",
-   "pygments_lexer": "ipython3",
-   "version": "3.9.13"
-  }
- },
- "nbformat": 4,
- "nbformat_minor": 5
-}
+!pip install pyqtgraph
+import sys
+from PyQt5 import QtCore, QtWidgets
+from PyQt5.QtWidgets import QComboBox, QMainWindow, QApplication, QWidget, QVBoxLayout
+import pyqtgraph as pg
+import pyqtgraph.exporters
+from pyqtgraph import PlotWidget, plot
+import pandas as pd
+import numpy as np
+
+class NumpyArrayModel(QtCore.QAbstractTableModel):
+    def __init__(self, array, headers, parent=None):
+        QtCore.QAbstractTableModel.__init__(self, parent=parent)
+
+        self._array = array
+        self._headers = headers
+        self.r, self.c = np.shape(self.array)
+
+    @property
+    def array(self):
+        return self._array
+
+    @property
+    def headers(self):
+        return self._headers
+
+    def rowCount(self, parent=QtCore.QModelIndex()):
+        return self.r
+
+    def columnCount(self, parent=QtCore.QModelIndex()):
+        return self.c
+
+    def headerData(self, p_int, orientation, role):
+        if role == QtCore.Qt.DisplayRole:
+            if orientation == QtCore.Qt.Horizontal:
+                if p_int < len(self.headers):
+                    return self.headers[p_int]
+            elif orientation == QtCore.Qt.Vertical:
+                return p_int + 1
+        return
+
+    def data(self, index, role=QtCore.Qt.DisplayRole):
+        if not index.isValid():
+            return None
+        row = index.row()
+        column = index.column()
+        if row < 0 or row >= self.rowCount():
+            return None
+        if column < 0 or column >= self.columnCount():
+            return None
+        if role == QtCore.Qt.DisplayRole:
+            return self.array[row, column]
+        return None
+
+    def setData(self, index, value, role):
+        if not index.isValid():
+            return False
+        if role != QtCore.Qt.EditRole:
+            return False
+        row = index.row()
+        column = index.column()
+        if row < 0 or row >= self.rowCount():
+            return False
+        if column < 0 or column >= self.columnCount():
+            return False
+        self.array.values[row][column] = value
+        self.dataChanged.emit(index, index)
+        return True
+
+    def sort(self, column, order):
+        self.layoutAboutToBeChanged.emit()
+        argsort = self.array[:, column].argsort()
+        if order == QtCore.Qt.DescendingOrder:
+            argsort = argsort[::-1]
+        self._array = self.array[argsort]
+        self.layoutChanged.emit()
+
+
+class Window(QtWidgets.QWidget):
+    def __init__(self, parent=None):
+        QtWidgets.QWidget.__init__(self, parent=None)
+
+        self.combo_box1 = QComboBox()
+        self.combo_box2 = QComboBox()
+        self.combo_box3 = QComboBox()
+        self.combo_box1.addItems(['A', 'B', 'C'])
+        self.combo_box2.addItems(['A', 'B', 'C'])
+        self.combo_box3.addItems(['A', 'B', 'C'])
+        self.pd_table = QtWidgets.QTableView(self)
+
+        self.import_button = QtWidgets.QPushButton("Import CSV", self)
+        self.table_button = QtWidgets.QPushButton("View Table", self)
+        self.plot_button = QtWidgets.QPushButton("Plot", self)
+        self.run_button = QtWidgets.QPushButton("Run", self)
+        self.import_button.setCheckable(True)
+
+        self.import_button.clicked.connect(self.import_file)
+        self.table_button.clicked.connect(self.table_view)
+        self.plot_button.clicked.connect(self.plot)
+        self.run_button.clicked.connect(self.run)
+
+        vert_layout = QtWidgets.QVBoxLayout(self)
+        combo_layout = QtWidgets.QHBoxLayout()
+        button_layout = QtWidgets.QHBoxLayout()
+        combo_layout.addWidget(self.combo_box1)
+        combo_layout.addWidget(self.combo_box2)
+        combo_layout.addWidget(self.combo_box3)
+        vert_layout.addLayout(combo_layout)
+        button_layout.addWidget(self.import_button)
+        button_layout.addWidget(self.plot_button)
+        button_layout.addWidget(self.table_button)
+        button_layout.addWidget(self.run_button)
+        vert_layout.addLayout(button_layout)
+        vert_layout.addWidget(self.pd_table)
+
+    
+    def import_file(self):
+        file_name, _ = QtWidgets.QFileDialog.getOpenFileName(
+            self, "Open File", "", "CSV Files (*.csv)")
+        if file_name:
+            df = pd.read_csv(file_name)
+            array = np.array(df.values)
+            headers = df.columns.tolist()
+            self.model = NumpyArrayModel(array, headers)
+            
+    def table_view(self):
+        if self.import_button.isChecked():
+            self.pd_table.setModel(self.model)
+            self.pd_table.setSortingEnabled(True)
+        else:
+            print("No file has been imported")
+            
+    def plot(self):
+        hour = [1,2,3,4,5,6,7,8,9,10]
+        temperature = [30,32,34,32,33,31,29,32,35,45]
+        plt = pg.plot(hour, temperature)
+        plt.showGrid(x=True,y=True)
+            
+    def run(self):
+        if self.import_button.isChecked():
+            print(self.model)
+        else:
+            print("No file has been imported")
+
+if __name__ == "__main__":
+    app = QtWidgets.QApplication(sys.argv)
+    w = Window()
+    w.show()
+    sys.exit(app.exec_())
